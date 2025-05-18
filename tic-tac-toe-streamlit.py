@@ -22,9 +22,10 @@ if 'computer' not in st.session_state:
     st.session_state.computer = 'O'
 if 'current_turn' not in st.session_state:
     st.session_state.current_turn = 'X'  # X always starts
-# Add a state to prevent multiple clicks during computer's turn
 if 'waiting_for_computer' not in st.session_state:
     st.session_state.waiting_for_computer = False
+if 'last_action_time' not in st.session_state:
+    st.session_state.last_action_time = time.time()
 
 # Helper functions for game logic
 def check_winner_for_player(board, player):
@@ -99,11 +100,22 @@ def get_computer_move(board):
     return best_move
 
 def handle_click(row, col):
-    # Ignore if game is over, cell is already filled, or waiting for computer
+    # Ignore clicks if:
+    # 1. Game is over
+    # 2. Cell is already filled
+    # 3. Waiting for computer's turn
+    # 4. Action debounce (prevent double-clicks)
+    current_time = time.time()
+    time_since_last_action = current_time - st.session_state.last_action_time
+    
     if (st.session_state.game_over or 
         st.session_state.board[row, col] != "" or 
-        st.session_state.waiting_for_computer):
+        st.session_state.waiting_for_computer or
+        time_since_last_action < 0.5):  # Debounce time in seconds
         return
+    
+    # Update last action time
+    st.session_state.last_action_time = current_time
     
     # Human move
     st.session_state.board[row, col] = st.session_state.human
@@ -120,7 +132,7 @@ def handle_click(row, col):
         st.session_state.winner = "Draw"
         return
     
-    # Set waiting flag to prevent multiple clicks
+    # Set waiting flag to prevent multiple actions
     st.session_state.waiting_for_computer = True
     
     # Computer's turn
@@ -155,6 +167,7 @@ def computer_move():
     # Switch back to human and reset waiting flag
     st.session_state.current_turn = st.session_state.human
     st.session_state.waiting_for_computer = False
+    st.session_state.last_action_time = time.time()  # Reset action timer
 
 def reset_game():
     st.session_state.board = np.full((3, 3), "", dtype=str)
@@ -162,6 +175,7 @@ def reset_game():
     st.session_state.winner = None
     st.session_state.current_turn = st.session_state.human
     st.session_state.waiting_for_computer = False
+    st.session_state.last_action_time = time.time()
 
 # Main app layout
 st.title("Tic Tac Toe with Minimax AI")
@@ -181,86 +195,124 @@ status_container = st.container()
 # Game board
 board_container = st.container()
 
-# Create the 3x3 grid of buttons for the game board
+# Apply custom CSS for a consistent grid layout
 with board_container:
-    # Custom CSS to create a fixed 3x3 grid that scales as a unit
-st.markdown("""
-<style>
-/* Center the game board container */
-.board-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 auto;
-    width: 100%;
-    max-width: 360px;
-}
-
-/* Keep the board square */
-.game-board {
-    position: relative;
-    width: 100%;
-    padding-bottom: 100%; /* 1:1 aspect ratio */
-}
-
-/* Grid layout for the board */
-.board-grid {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 5px;
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 5px;
-    border-radius: 8px;
-}
-
-/* Ensure each cell fills its space */
-.ttt-cell {
-    width: 100%;
-    height: 100%;
-    margin: 0 !important;
-    padding: 0 !important;
-    position: relative;
-}
-
-/* Force button to fill each cell */
-.ttt-cell button {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    width: 100% !important;
-    height: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    font-size: 2.5rem !important;
-    font-weight: bold !important;
-    background-color: white;
-    border-radius: 6px;
-    padding: 0 !important;
-}
-
-/* Consistent look for X and O */
-.mark-x {
-    color: #FF4B4B !important;
-}
-.mark-o {
-    color: #4B70FF !important;
-}
-
-/* Remove padding from Streamlit containers */
-.element-container:has(.ttt-cell) {
-    padding: 0 !important;
-    margin: 0 !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-    # Create fixed-ratio container for the game board
-    st.markdown('<div class="board-container"><div class="game-board"><div class="board-grid">', unsafe_allow_html=True)
+    st.markdown("""
+    <style>
+    /* Main game container */
+    .ttt-container {
+        width: 100%;
+        max-width: 350px;
+        margin: 0 auto;
+        padding: 10px;
+        box-sizing: border-box;
+    }
     
-    # Create board using raw HTML to completely control layout
+    /* Game board - always maintains square aspect ratio */
+    .ttt-board {
+        position: relative;
+        width: 100%;
+        padding-bottom: 100%; /* Makes it a perfect square */
+        background-color: #eee;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    /* Grid layout */
+    .ttt-grid {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 33.333% 33.333% 33.333%;
+        grid-template-rows: 33.333% 33.333% 33.333%;
+        gap: 2px;
+        background-color: #999;
+        padding: 2px;
+    }
+    
+    /* Cell styling */
+    .ttt-cell {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Fix Streamlit button container */
+    div.stButton {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* Individual button styling */
+    div.stButton > button {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+        font-size: min(8vw, 36px) !important;
+        font-weight: bold !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: white !important;
+    }
+    
+    /* Fix alignment issues */
+    div.stButton div {
+        width: 100%;
+        height: 100%;
+    }
+    
+    /* X and O styling */
+    div.stButton > button:has(span:contains("X")) {
+        color: #FF4B4B !important;
+    }
+    
+    div.stButton > button:has(span:contains("O")) {
+        color: #4B70FF !important;
+    }
+    
+    /* Hide extra padding in containers */
+    div[data-testid="column"] {
+        padding: 0 !important;
+    }
+    
+    div[data-testid="stVerticalBlock"] {
+        gap: 0 !important;
+    }
+    
+    /* Center the status text */
+    .status-text {
+        text-align: center;
+        margin: 15px 0;
+    }
+    
+    /* Center the reset button */
+    .reset-container {
+        display: flex;
+        justify-content: center;
+        margin: 15px 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Create the game board with fixed square aspect ratio
+    st.markdown('<div class="ttt-container"><div class="ttt-board"><div class="ttt-grid">', unsafe_allow_html=True)
+    
+    # Create each cell in the grid
     for i in range(3):
         for j in range(3):
             cell_value = st.session_state.board[i, j]
@@ -268,24 +320,16 @@ st.markdown("""
             
             # Determine if cell should be disabled
             disabled = (st.session_state.game_over or 
-                         cell_value != "" or 
-                         st.session_state.waiting_for_computer)
+                        cell_value != "" or 
+                        st.session_state.waiting_for_computer)
             
-            # Add special styling for X and O
-            mark_class = ""
-            if cell_value == "X":
-                mark_class = "mark-x"
-            elif cell_value == "O":
-                mark_class = "mark-o"
-            
-            # Create the cell
+            # Create the cell with button
             st.markdown(f'<div class="ttt-cell">', unsafe_allow_html=True)
-            if st.button(button_label, key=f"cell_{i}_{j}", disabled=disabled, 
-                         help=f"Cell position [{i},{j}]"):
+            if st.button(button_label, key=f"cell_{i}_{j}", disabled=disabled):
                 handle_click(i, j)
             st.markdown('</div>', unsafe_allow_html=True)
     
-    # Close the board container tags
+    # Close the grid container
     st.markdown('</div></div></div>', unsafe_allow_html=True)
 
 # Computer's move (occurs after human's move)
@@ -293,16 +337,20 @@ if (st.session_state.current_turn == st.session_state.computer and
     st.session_state.waiting_for_computer and 
     not st.session_state.game_over):
     with status_container:
+        # Display thinking indicator
+        st.markdown('<div class="status-text">', unsafe_allow_html=True)
         with st.spinner("Computer is thinking..."):
             # Add a small delay to show the "thinking" state
             time.sleep(0.7)
             computer_move()
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Rerun once to update the UI after the computer's move
     st.rerun()
 
 # Display game status
 with status_container:
+    st.markdown('<div class="status-text">', unsafe_allow_html=True)
     if st.session_state.game_over:
         if st.session_state.winner == "You":
             st.success("🎉 You win! 🎉")
@@ -315,38 +363,12 @@ with status_container:
             st.warning("Computer is making a move...")
         else:
             st.info("Your turn (X)")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Reset button
-col1, col2, col3 = st.columns([1, 1, 1])
-with col2:
-    reset_disabled = st.session_state.waiting_for_computer
-    if st.button("New Game", key="reset", disabled=reset_disabled):
-        reset_game()
-        st.rerun()
-
-# Add deployment instructions
-with st.expander("How to Deploy This App", expanded=False):
-    st.write("""
-    To deploy this Tic Tac Toe game online:
-    
-    1. **Save this code** in a file named `app.py`
-    
-    2. **Create a requirements.txt file** with:
-       ```
-       streamlit
-       numpy
-       ```
-    
-    3. **Deploy using Streamlit Cloud**:
-       - Visit https://streamlit.io/cloud
-       - Create a free account
-       - Connect your GitHub repository
-       - Select the repository with your app
-       - Deploy in just a few clicks!
-       
-    4. **Alternative Deployment Options**:
-       - Render.com (Free tier available)
-       - Heroku (Requires credit card)
-       - Hugging Face Spaces (Free)
-       - Railway.app (Limited free tier)
-    """)
+st.markdown('<div class="reset-container">', unsafe_allow_html=True)
+reset_disabled = st.session_state.waiting_for_computer
+if st.button("New Game", key="reset", disabled=reset_disabled):
+    reset_game()
+    st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
