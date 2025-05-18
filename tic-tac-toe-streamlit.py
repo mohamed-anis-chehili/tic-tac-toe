@@ -4,7 +4,7 @@ import time
 
 # Set page configuration
 st.set_page_config(
-    page_title="Tic Tac Toe with AI",
+    page_title="Welcome to my tic tac toe AI game",
     page_icon="🎮",
     layout="centered"
 )
