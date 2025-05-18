@@ -238,26 +238,4 @@ with col2:
 # Add deployment instructions
 with st.expander("How to Deploy This App", expanded=False):
     st.write("""
-    To deploy this Tic Tac Toe game online:
-    
-    1. **Save this code** in a file named `app.py`
-    
-    2. **Create a requirements.txt file** with:
-       ```
-       streamlit
-       numpy
-       ```
-    
-    3. **Deploy using Streamlit Cloud**:
-       - Visit https://streamlit.io/cloud
-       - Create a free account
-       - Connect your GitHub repository
-       - Select the repository with your app
-       - Deploy in just a few clicks!
-       
-    4. **Alternative Deployment Options**:
-       - Render.com (Free tier available)
-       - Heroku (Requires credit card)
-       - Hugging Face Spaces (Free)
-       - Railway.app (Limited free tier)
-    """)
+   
