@@ -22,6 +22,9 @@ if 'computer' not in st.session_state:
     st.session_state.computer = 'O'
 if 'current_turn' not in st.session_state:
     st.session_state.current_turn = 'X'  # X always starts
+# Add a state to prevent multiple clicks during computer's turn
+if 'waiting_for_computer' not in st.session_state:
+    st.session_state.waiting_for_computer = False
 
 # Helper functions for game logic
 def check_winner_for_player(board, player):
@@ -96,8 +99,10 @@ def get_computer_move(board):
     return best_move
 
 def handle_click(row, col):
-    # Ignore if game is over or cell is already filled
-    if st.session_state.game_over or st.session_state.board[row, col] != "":
+    # Ignore if game is over, cell is already filled, or waiting for computer
+    if (st.session_state.game_over or 
+        st.session_state.board[row, col] != "" or 
+        st.session_state.waiting_for_computer):
         return
     
     # Human move
@@ -115,6 +120,9 @@ def handle_click(row, col):
         st.session_state.winner = "Draw"
         return
     
+    # Set waiting flag to prevent multiple clicks
+    st.session_state.waiting_for_computer = True
+    
     # Computer's turn
     st.session_state.current_turn = st.session_state.computer
     
@@ -123,6 +131,7 @@ def handle_click(row, col):
 
 def computer_move():
     if st.session_state.game_over:
+        st.session_state.waiting_for_computer = False
         return
     
     # Get computer's move using minimax
@@ -137,25 +146,25 @@ def computer_move():
         if check_winner_for_player(st.session_state.board, st.session_state.computer):
             st.session_state.game_over = True
             st.session_state.winner = "Computer"
-            return
-        
+            
         # Check for draw
-        if is_board_full(st.session_state.board):
+        elif is_board_full(st.session_state.board):
             st.session_state.game_over = True
             st.session_state.winner = "Draw"
-            return
     
-    # Switch back to human
+    # Switch back to human and reset waiting flag
     st.session_state.current_turn = st.session_state.human
+    st.session_state.waiting_for_computer = False
 
 def reset_game():
     st.session_state.board = np.full((3, 3), "", dtype=str)
     st.session_state.game_over = False
     st.session_state.winner = None
     st.session_state.current_turn = st.session_state.human
+    st.session_state.waiting_for_computer = False
 
 # Main app layout
-st.title("Tic Tac Toe with Minimax AI")
+st.title("Welcome to my AI playing room")
 
 # Add game instructions and info
 with st.expander("How to Play", expanded=False):
@@ -174,69 +183,97 @@ board_container = st.container()
 
 # Create the 3x3 grid of buttons for the game board
 with board_container:
-    # Custom CSS to make the board look better and maintain proper grid layout on all devices
+    # Custom CSS to make the board look better and ensure proper grid layout
     st.markdown("""
     <style>
-    .stButton > button {
-        width: 100%;
-        height: 80px;
-        min-width: 80px;
-        font-size: 24px !important;
-        font-weight: bold;
-        color: white !important;
-    }
-    
-    /* Fix grid layout on mobile */
-    @media (max-width: 768px) {
-        div[data-testid="column"] {
-            width: 33.33% !important;
-            flex: 0 0 33.33% !important;
-            min-width: unset !important;
-        }
-        
-        .stButton > button {
-            padding: 0 !important;
-            height: 80px !important;
-            width: 100% !important;
-            min-height: 80px !important;
-        }
-    }
-    
-    /* Create a grid container */
-    .grid-container {
+    /* Fix the game grid layout */
+    .game-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
+        gap: 8px;
         margin: 0 auto;
         max-width: 300px;
+    }
+    
+    .grid-cell {
+        aspect-ratio: 1/1;
+        width: 100%;
+    }
+    
+    .stButton {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .stButton button {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 80px !important;
+        aspect-ratio: 1/1;
+        font-size: 24px !important;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 !important;
+    }
+    
+    /* Remove default column spacing */
+    div[data-testid="column"] {
+        padding: 0 !important;
+    }
+    
+    /* Ensure columns keep proper width on all devices */
+    [data-testid="stHorizontalBlock"] {
+        gap: 8px !important;
+    }
+    
+    /* Container for each row */
+    .row-container {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    
+    /* Individual cell */
+    .cell-container {
+        flex: 1;
+        aspect-ratio: 1/1;
     }
     </style>
     """, unsafe_allow_html=True)
     
-    # Create the board buttons with fixed grid layout
-    st.markdown('<div class="grid-container">', unsafe_allow_html=True)
+    # Create the 3x3 grid with proper layout
+    st.markdown('<div class="game-grid">', unsafe_allow_html=True)
     
-    # Create the board within a fixed container
+    # Create each cell in the grid
     for i in range(3):
         for j in range(3):
             cell_value = st.session_state.board[i, j]
             button_label = cell_value if cell_value else " "
             
-            # Disable buttons if game is over
-            disabled = st.session_state.game_over or cell_value != ""
+            # Disable buttons if game is over or waiting for computer
+            disabled = (st.session_state.game_over or 
+                        cell_value != "" or 
+                        st.session_state.waiting_for_computer)
             
-            # Place the button in the grid using streamlit columns
-            col = st.columns(3)[j]
-            with col:
-                if st.button(button_label, key=f"cell_{i}_{j}", disabled=disabled):
-                    handle_click(i, j)
+            # Create the cell with proper class for styling
+            st.markdown(f'<div class="grid-cell" id="cell_{i}_{j}">', unsafe_allow_html=True)
+            if st.button(button_label, key=f"cell_{i}_{j}", disabled=disabled):
+                handle_click(i, j)
+            st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Computer's move (occurs after human's move)
-if st.session_state.current_turn == st.session_state.computer and not st.session_state.game_over:
+if (st.session_state.current_turn == st.session_state.computer and 
+    st.session_state.waiting_for_computer and 
+    not st.session_state.game_over):
     with status_container:
         with st.spinner("Computer is thinking..."):
             # Add a small delay to show the "thinking" state
-            time.sleep(0.5)
+            time.sleep(0.7)
             computer_move()
     
     # Rerun once to update the UI after the computer's move
@@ -252,41 +289,15 @@ with status_container:
         else:
             st.info("It's a draw!")
     else:
-        if st.session_state.current_turn == st.session_state.human:
-            st.info("Your turn (X)")
+        if st.session_state.waiting_for_computer:
+            st.warning("Computer is making a move...")
         else:
-            st.warning("Computer's turn (O)")
+            st.info("Your turn (X)")
 
 # Reset button
 col1, col2, col3 = st.columns([1, 1, 1])
 with col2:
-    if st.button("New Game", key="reset"):
+    reset_disabled = st.session_state.waiting_for_computer
+    if st.button("New Game", key="reset", disabled=reset_disabled):
         reset_game()
         st.rerun()
-
-# Add deployment instructions
-with st.expander("How to Deploy This App", expanded=False):
-    st.write("""
-    To deploy this Tic Tac Toe game online:
-    
-    1. **Save this code** in a file named `app.py`
-    
-    2. **Create a requirements.txt file** with:
-       ```
-       streamlit
-       numpy
-       ```
-    
-    3. **Deploy using Streamlit Cloud**:
-       - Visit https://streamlit.io/cloud
-       - Create a free account
-       - Connect your GitHub repository
-       - Select the repository with your app
-       - Deploy in just a few clicks!
-       
-    4. **Alternative Deployment Options**:
-       - Render.com (Free tier available)
-       - Heroku (Requires credit card)
-       - Hugging Face Spaces (Free)
-       - Railway.app (Limited free tier)
-    """)
