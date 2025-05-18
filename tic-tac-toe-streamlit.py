@@ -155,7 +155,7 @@ def reset_game():
     st.session_state.current_turn = st.session_state.human
 
 # Main app layout
-st.title("Welcome to my AI X/O game")
+st.title("Welcome to my AI playing room")
 
 # Add game instructions and info
 with st.expander("How to Play", expanded=False):
