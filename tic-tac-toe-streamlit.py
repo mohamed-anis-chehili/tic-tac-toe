@@ -184,90 +184,79 @@ board_container = st.container()
 # Create the 3x3 grid of buttons for the game board
 with board_container:
     # Custom CSS to create a fixed 3x3 grid that scales as a unit
-    st.markdown("""
-    <style>
-    /* Center the game board */
-    .board-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 0 auto;
-        width: 100%;
-        max-width: 400px;
-    }
-    
-    /* Main game board - fixed aspect ratio wrapper */
-    .game-board {
-        position: relative;
-        width: 100%;
-        padding-bottom: 100%; /* Creates a perfect square */
-    }
-    
-    /* Board grid container */
-    .board-grid {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        grid-template-rows: 1fr 1fr 1fr;
-        gap: 6px;
-        background-color: rgba(0, 0, 0, 0.1);
-        padding: 6px;
-        border-radius: 8px;
-    }
-    
-    /* Override Streamlit's button styling to ensure proper grid */
-    .ttt-cell {
-        width: 100%;
-        height: 100%;
-        margin: 0 !important;
-        padding: 0 !important;
-        position: relative;
-    }
-    
-    .ttt-cell > div {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-    }
-    
-    /* Style the buttons to fill the cells completely */
-    .ttt-cell button {
-        width: 100% !important;
-        height: 100% !important;
-        margin: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: min(5vw, 24px) !important;
-        font-weight: bold !important;
-        padding: 0 !important;
-        border-radius: 4px !important;
-        background-color: white;
-    }
-    
-    /* Hide default Streamlit elements that might break layout */
-    .element-container:has(.ttt-cell) {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* Style X and O marks */
-    .mark-x {
-        color: #FF4B4B !important;
-    }
-    
-    .mark-o {
-        color: #4B70FF !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
+st.markdown("""
+<style>
+/* Center the game board container */
+.board-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 360px;
+}
+
+/* Keep the board square */
+.game-board {
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%; /* 1:1 aspect ratio */
+}
+
+/* Grid layout for the board */
+.board-grid {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 5px;
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 5px;
+    border-radius: 8px;
+}
+
+/* Ensure each cell fills its space */
+.ttt-cell {
+    width: 100%;
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative;
+}
+
+/* Force button to fill each cell */
+.ttt-cell button {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 2.5rem !important;
+    font-weight: bold !important;
+    background-color: white;
+    border-radius: 6px;
+    padding: 0 !important;
+}
+
+/* Consistent look for X and O */
+.mark-x {
+    color: #FF4B4B !important;
+}
+.mark-o {
+    color: #4B70FF !important;
+}
+
+/* Remove padding from Streamlit containers */
+.element-container:has(.ttt-cell) {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
     # Create fixed-ratio container for the game board
     st.markdown('<div class="board-container"><div class="game-board"><div class="board-grid">', unsafe_allow_html=True)
     
