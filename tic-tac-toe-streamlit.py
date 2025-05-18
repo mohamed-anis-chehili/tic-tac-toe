@@ -4,7 +4,7 @@ import time
 
 # Set page configuration
 st.set_page_config(
-    page_title="Anis ticitac-toe",
+    page_title="Tic Tac Toe with AI",
     page_icon="🎮",
     layout="centered"
 )
@@ -157,6 +157,23 @@ def reset_game():
 # Main app layout
 st.title("Welcome to my AI playing room")
 
+# Center the board and controls
+st.markdown("""
+<style>
+    .main .block-container {
+        max-width: 700px;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    
+    /* Center all content */
+    .stButton, .stSpinner, div[data-testid="stHorizontalBlock"] {
+        display: flex;
+        justify-content: center;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Add game instructions and info
 with st.expander("How to Play", expanded=False):
     st.write("""
@@ -174,22 +191,35 @@ board_container = st.container()
 
 # Create the 3x3 grid of buttons for the game board
 with board_container:
-    cols = st.columns([1, 1, 1])
-    
-    # Custom CSS to make the board look better
+    # Custom CSS to make the board look better and maintain square aspect ratio
     st.markdown("""
     <style>
     .stButton > button {
-        width: 100%;
-        height: 80px;
-        font-size: 24px !important;
+        width: 100px;
+        height: 100px;
+        font-size: 40px !important;
         font-weight: bold;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .board-row {
+        display: flex;
+        justify-content: center;
+    }
+    .board-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
     </style>
+    <div class="board-container">
     """, unsafe_allow_html=True)
     
-    # Create the board buttons
+    # Create the board with fixed dimensions
     for i in range(3):
+        st.markdown('<div class="board-row">', unsafe_allow_html=True)
         cols = st.columns([1, 1, 1])
         for j in range(3):
             with cols[j]:
@@ -201,6 +231,9 @@ with board_container:
                 
                 if st.button(button_label, key=f"cell_{i}_{j}", disabled=disabled):
                     handle_click(i, j)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Computer's move (occurs after human's move)
 if st.session_state.current_turn == st.session_state.computer and not st.session_state.game_over:
@@ -234,4 +267,3 @@ with col2:
     if st.button("New Game", key="reset"):
         reset_game()
         st.rerun()
-
