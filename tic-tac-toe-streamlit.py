@@ -235,7 +235,3 @@ with col2:
         reset_game()
         st.rerun()
 
-# Add deployment instructions
-with st.expander("How to Deploy This App", expanded=False):
-    st.write("""
-   
