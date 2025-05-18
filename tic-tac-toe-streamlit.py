@@ -164,7 +164,7 @@ def reset_game():
     st.session_state.waiting_for_computer = False
 
 # Main app layout
-st.title("Welcome to my AI playing room")
+st.title("Tic Tac Toe with Minimax AI")
 
 # Add game instructions and info
 with st.expander("How to Play", expanded=False):
@@ -183,88 +183,121 @@ board_container = st.container()
 
 # Create the 3x3 grid of buttons for the game board
 with board_container:
-    # Custom CSS to make the board look better and ensure proper grid layout
+    # Custom CSS to create a fixed 3x3 grid that scales as a unit
     st.markdown("""
     <style>
-    /* Fix the game grid layout */
-    .game-grid {
+    /* Center the game board */
+    .board-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto;
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    /* Main game board - fixed aspect ratio wrapper */
+    .game-board {
+        position: relative;
+        width: 100%;
+        padding-bottom: 100%; /* Creates a perfect square */
+    }
+    
+    /* Board grid container */
+    .board-grid {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         grid-template-rows: 1fr 1fr 1fr;
-        gap: 8px;
-        margin: 0 auto;
-        max-width: 300px;
+        gap: 6px;
+        background-color: rgba(0, 0, 0, 0.1);
+        padding: 6px;
+        border-radius: 8px;
     }
     
-    .grid-cell {
-        aspect-ratio: 1/1;
-        width: 100%;
-    }
-    
-    .stButton {
+    /* Override Streamlit's button styling to ensure proper grid */
+    .ttt-cell {
         width: 100%;
         height: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        position: relative;
     }
     
-    .stButton button {
+    .ttt-cell > div {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+    
+    /* Style the buttons to fill the cells completely */
+    .ttt-cell button {
         width: 100% !important;
         height: 100% !important;
-        min-height: 80px !important;
-        aspect-ratio: 1/1;
-        font-size: 24px !important;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: min(5vw, 24px) !important;
+        font-weight: bold !important;
+        padding: 0 !important;
+        border-radius: 4px !important;
+        background-color: white;
+    }
+    
+    /* Hide default Streamlit elements that might break layout */
+    .element-container:has(.ttt-cell) {
+        margin: 0 !important;
         padding: 0 !important;
     }
     
-    /* Remove default column spacing */
-    div[data-testid="column"] {
-        padding: 0 !important;
+    /* Style X and O marks */
+    .mark-x {
+        color: #FF4B4B !important;
     }
     
-    /* Ensure columns keep proper width on all devices */
-    [data-testid="stHorizontalBlock"] {
-        gap: 8px !important;
-    }
-    
-    /* Container for each row */
-    .row-container {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-    
-    /* Individual cell */
-    .cell-container {
-        flex: 1;
-        aspect-ratio: 1/1;
+    .mark-o {
+        color: #4B70FF !important;
     }
     </style>
     """, unsafe_allow_html=True)
     
-    # Create the 3x3 grid with proper layout
-    st.markdown('<div class="game-grid">', unsafe_allow_html=True)
+    # Create fixed-ratio container for the game board
+    st.markdown('<div class="board-container"><div class="game-board"><div class="board-grid">', unsafe_allow_html=True)
     
-    # Create each cell in the grid
+    # Create board using raw HTML to completely control layout
     for i in range(3):
         for j in range(3):
             cell_value = st.session_state.board[i, j]
             button_label = cell_value if cell_value else " "
             
-            # Disable buttons if game is over or waiting for computer
+            # Determine if cell should be disabled
             disabled = (st.session_state.game_over or 
-                        cell_value != "" or 
-                        st.session_state.waiting_for_computer)
+                         cell_value != "" or 
+                         st.session_state.waiting_for_computer)
             
-            # Create the cell with proper class for styling
-            st.markdown(f'<div class="grid-cell" id="cell_{i}_{j}">', unsafe_allow_html=True)
-            if st.button(button_label, key=f"cell_{i}_{j}", disabled=disabled):
+            # Add special styling for X and O
+            mark_class = ""
+            if cell_value == "X":
+                mark_class = "mark-x"
+            elif cell_value == "O":
+                mark_class = "mark-o"
+            
+            # Create the cell
+            st.markdown(f'<div class="ttt-cell">', unsafe_allow_html=True)
+            if st.button(button_label, key=f"cell_{i}_{j}", disabled=disabled, 
+                         help=f"Cell position [{i},{j}]"):
                 handle_click(i, j)
             st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Close the board container tags
+    st.markdown('</div></div></div>', unsafe_allow_html=True)
 
 # Computer's move (occurs after human's move)
 if (st.session_state.current_turn == st.session_state.computer and 
@@ -301,3 +334,30 @@ with col2:
     if st.button("New Game", key="reset", disabled=reset_disabled):
         reset_game()
         st.rerun()
+
+# Add deployment instructions
+with st.expander("How to Deploy This App", expanded=False):
+    st.write("""
+    To deploy this Tic Tac Toe game online:
+    
+    1. **Save this code** in a file named `app.py`
+    
+    2. **Create a requirements.txt file** with:
+       ```
+       streamlit
+       numpy
+       ```
+    
+    3. **Deploy using Streamlit Cloud**:
+       - Visit https://streamlit.io/cloud
+       - Create a free account
+       - Connect your GitHub repository
+       - Select the repository with your app
+       - Deploy in just a few clicks!
+       
+    4. **Alternative Deployment Options**:
+       - Render.com (Free tier available)
+       - Heroku (Requires credit card)
+       - Hugging Face Spaces (Free)
+       - Railway.app (Limited free tier)
+    """)
