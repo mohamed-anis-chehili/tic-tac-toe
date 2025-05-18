@@ -155,7 +155,7 @@ def reset_game():
     st.session_state.current_turn = st.session_state.human
 
 # Main app layout
-st.title("Welcome to my AI playing room")
+st.title("Tic Tac Toe with Minimax AI")
 
 # Center the board and controls
 st.markdown("""
@@ -191,49 +191,132 @@ board_container = st.container()
 
 # Create the 3x3 grid of buttons for the game board
 with board_container:
-    # Custom CSS to make the board look better and maintain square aspect ratio
+    # Custom CSS to force the grid to stay as a 3x3 grid even on mobile
     st.markdown("""
     <style>
-    .stButton > button {
+    /* Grid container */
+    .game-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 100px);
+        grid-template-rows: repeat(3, 100px);
+        gap: 5px;
+        justify-content: center;
+        margin: 0 auto;
+    }
+    
+    /* Grid cell */
+    .grid-cell {
         width: 100px;
         height: 100px;
-        font-size: 40px !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f0f2f6;
+        border-radius: 4px;
+        font-size: 40px;
+        font-color: white;
         font-weight: bold;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        cursor: pointer;
     }
-    .board-row {
-        display: flex;
-        justify-content: center;
+    
+    .grid-cell.disabled {
+        cursor: not-allowed;
+        opacity: 0.8;
     }
-    .board-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+    
+    .grid-cell.x {
+        color: #FF4B4B;
+    }
+    
+    .grid-cell.o {
+        color: #0068C9;
     }
     </style>
-    <div class="board-container">
     """, unsafe_allow_html=True)
     
-    # Create the board with fixed dimensions
+    # Container for our custom grid
+    html_grid = '<div class="game-grid">'
+    
+    # Generate the cells
     for i in range(3):
-        st.markdown('<div class="board-row">', unsafe_allow_html=True)
-        cols = st.columns([1, 1, 1])
         for j in range(3):
-            with cols[j]:
-                cell_value = st.session_state.board[i, j]
-                button_label = cell_value if cell_value else " "
+            cell_value = st.session_state.board[i, j]
+            cell_class = ""
+            
+            if cell_value == "X":
+                cell_class = " x"
+            elif cell_value == "O":
+                cell_class = " o"
+            
+            if cell_value != "" or st.session_state.game_over:
+                cell_class += " disabled"
                 
-                # Disable buttons if game is over
-                disabled = st.session_state.game_over or cell_value != ""
-                
-                if st.button(button_label, key=f"cell_{i}_{j}", disabled=disabled):
-                    handle_click(i, j)
+            cell_id = f"cell_{i}_{j}"
+            cell_content = cell_value if cell_value else "&nbsp;"
+            
+            html_grid += f'<div class="grid-cell{cell_class}" id="{cell_id}" ' + \
+                        f'onclick="handleCellClick({i}, {j})">{cell_content}</div>'
+    
+    html_grid += '</div>'
+    
+    # JavaScript to handle clicks
+    js_code = """
+    <script>
+    function handleCellClick(row, col) {
+        // Use session_state to communicate back to Streamlit
+        const queryString = new URLSearchParams({
+            row: row,
+            col: col
+        }).toString();
+        
+        window.parent.postMessage({
+            type: "streamlit:setComponentValue",
+            value: queryString
+        }, "*");
+    }
+    </script>
+    """
+    
+    # Combine HTML and JavaScript
+    st.markdown(html_grid + js_code, unsafe_allow_html=True)
+    
+    # Hidden placeholder to capture clicks
+    click_placeholder = st.empty()
+    
+    # Temporary solution: Keep the original buttons but make them transparent
+    # They're necessary for state management while we implement the custom grid
+    st.markdown("""
+    <style>
+    .hidden-buttons button {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    with st.container():
+        st.markdown('<div class="hidden-buttons">', unsafe_allow_html=True)
+        for i in range(3):
+            cols = st.columns(3)
+            for j in range(3):
+                with cols[j]:
+                    if st.button(" ", key=f"button_{i}_{j}"):
+                        handle_click(i, j)
         st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Create a manual grid selection system with a form
+    with st.form(key="grid_form"):
+        st.write("Select a cell to make your move:")
+        col1, col2 = st.columns(2)
+        with col1:
+            row = st.selectbox("Row:", [1, 2, 3], key="row_select") - 1
+        with col2:
+            col = st.selectbox("Column:", [1, 2, 3], key="col_select") - 1
+        
+        submit = st.form_submit_button("Make Move")
+        if submit and not st.session_state.game_over and st.session_state.board[row, col] == "":
+            handle_click(row, col)
 
 # Computer's move (occurs after human's move)
 if st.session_state.current_turn == st.session_state.computer and not st.session_state.game_over:
@@ -267,3 +350,30 @@ with col2:
     if st.button("New Game", key="reset"):
         reset_game()
         st.rerun()
+
+# Add deployment instructions
+with st.expander("How to Deploy This App", expanded=False):
+    st.write("""
+    To deploy this Tic Tac Toe game online:
+    
+    1. **Save this code** in a file named `app.py`
+    
+    2. **Create a requirements.txt file** with:
+       ```
+       streamlit
+       numpy
+       ```
+    
+    3. **Deploy using Streamlit Cloud**:
+       - Visit https://streamlit.io/cloud
+       - Create a free account
+       - Connect your GitHub repository
+       - Select the repository with your app
+       - Deploy in just a few clicks!
+       
+    4. **Alternative Deployment Options**:
+       - Render.com (Free tier available)
+       - Heroku (Requires credit card)
+       - Hugging Face Spaces (Free)
+       - Railway.app (Limited free tier)
+    """)
